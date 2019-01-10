@@ -5,7 +5,7 @@ set -o pipefail
 
 NUMTHREADS=${1:-$((`nproc`-2))}
 SEQPATH="/home/kapper/dragun/space/sequences/"
-TAXDB="/home/kapper/Dropbox/AAU/PhD/Projects/ASV_test/midas30_20180105.fa"
+TAXDB="/home/kapper/Dropbox/AAU/PhD/Projects/ESV pipeline/runs/MiDAS3.0/midas30_20180108/output/ESVs_w_sintax.fa"
 SAMPLESEP="_"
 
 rm -rf rawdata/
