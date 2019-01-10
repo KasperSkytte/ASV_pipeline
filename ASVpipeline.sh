@@ -87,7 +87,7 @@ R --slave << 'sintaxtofastaheader'
     }
   })
   ##### export ASVs with SINTAX taxonomy in headers #####
-  sintax <- readLines("midasfull/ASVs.R1.sorted.sintax")
+  sintax <- readLines("ASVs.R1.sorted.sintax")
   taxdf <- plyr::ldply(str_split(sintax, "\t"), function(x) {
     x <- x[c(1,4)]
     if(is.null(x[2]) | x[2] == "")
@@ -96,15 +96,15 @@ R --slave << 'sintaxtofastaheader'
   })
   colnames(taxdf) <- c("ASV", "tax")
   
-  ASVs.fa <- readBStringSet("midasfull/ASVs.R1.fa")
+  ASVs.fa <- readBStringSet("ASVs.R1.fa")
   sintaxdf <- left_join(tibble(ASV = names(ASVs.fa)), taxdf, by = "ASV")
   sintax_header <- paste0(sintaxdf[["ASV"]], ";tax=", sintaxdf[["tax"]], ";")
   names(ASVs.fa) <- sintax_header
-  writeXStringSet(ASVs.fa, "midasfull/ASVs.R1.sorted_w_sintax.fa")
+  writeXStringSet(ASVs.fa, "ASVs.R1.sorted_w_sintax.fa")
 sintaxtofastaheader
 
 echoWithDate "Generating zOTU table..."
-usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout zotutable_notax.R1.txt -mapout ASVmapping.txt -threads $NUMTHREADS -sample_delim $SAMPLESEP
+usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout zotutable_notax.R1.txt -mapout ASVmapping.txt -threads $MAX_THREADS -sample_delim $SAMPLESEP
 #sort table
 head -n 1 zotutable_notax.R1.txt > tmp & tail -n +2 zotutable_notax.R1.txt | sort -V >> tmp & mv tmp zotutable_notax.R1.txt
 
