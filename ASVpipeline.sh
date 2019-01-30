@@ -49,15 +49,21 @@ done < samples_tmp.txt
 echoWithDate "Dereplicating reads..."
 usearch10 -fastx_uniques all.singlereads.nophix.qc.R1.fa -sizeout -fastaout uniques.R1.fa -relabel Uniq -quiet
 
-echoWithDate "Generating zOTUs of dereplicated reads..."
-usearch10 -unoise3 uniques.R1.fa -zotus ASVs.R1.fa -quiet
-sed -i 's/Zotu/ASV/g' ASVs.R1.fa
+echoWithDate "Generating ASVs (zOTUs) from dereplicated reads..."
+usearch10 -unoise3 uniques.R1.fa -zotus zOTUs.R1.fa -quiet
 
-echoWithDate "Predicting taxonomy the zOTUs..."
+echoWithDate "Finding all ASVs that match exactly with an already known ASV and renaming accordingly..."
+usearch10 -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
+usearch10 -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
+#combine hits with nohits
+cat ASVs_nohits_renamed.R1.fa >> ASVs.R1.fa
+
+echoWithDate "Predicting taxonomy of the ASVs..."
 usearch10 -sintax ASVs.R1.fa -db "$TAXDB" -tabbedout ASVs.R1.sintax -strand both -sintax_cutoff 0.8 -threads $MAX_THREADS -quiet
-sort -V ASVs.R1.sintax > ASVs.R1.sorted.sintax
+sort -V ASVs.R1.sintax -o ASVs.R1.sintax
 
-echoWithDate "Adding predicted taxonomy to the zOTU FASTA headers..."
+notused() {
+echoWithDate "Adding predicted taxonomy to the ASV FASTA headers..."
 R --slave << 'sintaxtofastaheader'
   suppressPackageStartupMessages({
     #Biostrings (and BiocManager which is used to install Biostrings)
@@ -104,17 +110,19 @@ R --slave << 'sintaxtofastaheader'
   names(ASVs.fa) <- sintax_header
   writeXStringSet(ASVs.fa, "ASVs.R1.sorted_w_sintax.fa")
 sintaxtofastaheader
+}
 
-echoWithDate "Generating zOTU table..."
-usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout zotutable_notax.R1.txt -mapout ASVmapping.txt -threads $MAX_THREADS -sample_delim $SAMPLESEP
+echoWithDate "Generating ASV table..."
+usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout ASVtable.tsv -mapout ASVmapping.txt -threads $MAX_THREADS -sample_delim $SAMPLESEP -quiet
 #sort table
-head -n 1 zotutable_notax.R1.txt > tmp & tail -n +2 zotutable_notax.R1.txt | sort -V >> tmp & mv tmp zotutable_notax.R1.txt
+head -n 1 ASVtable.tsv > tmp & tail -n +2 ASVtable.tsv | sort -V >> tmp & mv tmp ASVtable.tsv
 
 echoWithDate "Cleaning up..."
 rm -rf rawdata
 rm -rf phix_filtered
 rm -f samples_tmp.txt
-rm -f ASVs.R1.sintax
+rm -f ASVs_nohits.R1.fa
+rm -f ASVs_nohits_renamed.R1.fa
 
 duration=$(printf '%02dh:%02dm:%02ds\n' $(($SECONDS/3600)) $(($SECONDS%3600/60)) $(($SECONDS%60)))
 echoWithDate "Done in: $duration!"
