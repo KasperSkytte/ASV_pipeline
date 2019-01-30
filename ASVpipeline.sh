@@ -6,6 +6,8 @@ set -o pipefail
 MAX_THREADS=${1:-$((`nproc`-2))}
 SEQPATH=/home/kapper/dragun/space/sequences/
 TAXDB=/home/kapper/Dropbox/AAU/PhD/Projects/ESV\ pipeline/runs/MiDAS3.0/midas30_20190109/output/ESVs_w_sintax.fa
+#ASVDB=/home/kapper/Dropbox/AAU/PhD/Projects/ASV_pipeline/ASVdb/ASVs.R1.fa
+ASVDB=/home/kapper/Dropbox/AAU/PhD/Projects/ASV_test/midasfull/200bp/ASVs.R1.fa
 SAMPLESEP="_"
 
 rm -rf rawdata/
@@ -27,16 +29,16 @@ while ((i++)); read SAMPLE
   echo -ne "Processing sample: $SAMPLE ($i / $NSAMPLES)\r"
   find "$SEQPATH" -name $SAMPLE$SAMPLESEP*R1* 2>/dev/null -exec gzip -cd {} \; > rawdata/$SAMPLE.R1.fq
   usearch10 -filter_phix rawdata/$SAMPLE.R1.fq -output phix_filtered/$SAMPLE.R1.fq -threads $MAX_THREADS -quiet
-  rm rawdata/$SAMPLE.R1.fq
+  #rm rawdata/$SAMPLE.R1.fq
 done < samples_tmp.txt
 
-echoWithDate "Quality filtering, truncating reads to 250bp..."
+echoWithDate "Quality filtering, truncating reads to 200bp..."
 mkdir phix_filtered/tempdir
 # merge all sample fastq files
 while ((j++)); read SAMPLE
   do
   echo -ne "Processing sample: $SAMPLE ($j / $NSAMPLES)\r"
-  usearch10 -fastq_filter phix_filtered/$SAMPLE.R1.fq -fastq_maxee 1.0 -fastaout phix_filtered/tempdir/$SAMPLE.R1.QCout.fa -fastq_trunclen 250 -relabel @ -threads $MAX_THREADS -quiet
+  usearch10 -fastq_filter phix_filtered/$SAMPLE.R1.fq -fastq_maxee 1.0 -fastaout phix_filtered/tempdir/$SAMPLE.R1.QCout.fa -fastq_trunclen 200 -relabel @ -threads $MAX_THREADS -quiet
   cat phix_filtered/tempdir/$SAMPLE.R1.QCout.fa >> all.singlereads.nophix.qc.R1.fa
 
   # Create concatenated fastq file of nonfiltered reads, with the sample labels
