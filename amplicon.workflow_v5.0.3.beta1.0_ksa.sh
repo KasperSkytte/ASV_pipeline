@@ -660,9 +660,6 @@ if [[ $AMPREGION =~ ^(V4|V13)$ ]]
     #export OMP_NUM_THREADS=""
     
     # or: make_phylogeny.py -i $USER_PATH/aligned_seqs/${INFILE2}_aligned.fasta -o $USER_PATH/$INFILE.tre
-
-    echo ""
-    echo "   Warning: The R package Ampvis uses the Generalized UniFrac instead of the original weighted and unweighted UniFrac equations implemented in QIIME version 1.x.x."
     echo ""
     echo "   Generating beta diversity matrices: Bray Curtis, original version of weighted & unweighted UniFrac from Fasttree tree"
 
