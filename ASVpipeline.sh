@@ -6,7 +6,6 @@ set -o pipefail
 MAX_THREADS=${1:-$((`nproc`-2))}
 SEQPATH=/home/kapper/dragun/space/sequences/
 TAXDB=/home/kapper/Dropbox/AAU/PhD/Projects/ESV\ pipeline/runs/MiDAS3.0/midas30_20190109/output/ESVs_w_sintax.fa
-#ASVDB=/home/kapper/Dropbox/AAU/PhD/Projects/ASV_pipeline/ASVdb/ASVs.R1.fa
 ASVDB=/home/kapper/Dropbox/AAU/PhD/Projects/ASV_test/midasfull/200bp/ASVs.R1.fa
 SAMPLESEP="_"
 
@@ -14,13 +13,14 @@ rm -rf rawdata/
 rm -rf phix_filtered/
 mkdir -p rawdata
 mkdir -p phix_filtered
+mkdir -p phix_filtered/tempdir
 
 echoWithDate() {
   echo "[$(date '+%Y-%m-%d %H:%M:%S')]: $1"
 }
 
 echoWithDate "Running ASV pipeline (max threads: $MAX_THREADS)..."
-echoWithDate "Finding samples and filtering PhiX from reads (forward only)..."
+echoWithDate "Finding samples, filtering PhiX and bad reads, truncating to 250bp..."
 cat samples | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > samples_tmp.txt
 
 NSAMPLES=$(wc -w < samples_tmp.txt)
@@ -29,21 +29,16 @@ while ((i++)); read SAMPLE
   echo -ne "Processing sample: $SAMPLE ($i / $NSAMPLES)\r"
   find "$SEQPATH" -name $SAMPLE$SAMPLESEP*R1* 2>/dev/null -exec gzip -cd {} \; > rawdata/$SAMPLE.R1.fq
   usearch10 -filter_phix rawdata/$SAMPLE.R1.fq -output phix_filtered/$SAMPLE.R1.fq -threads $MAX_THREADS -quiet
-  #rm rawdata/$SAMPLE.R1.fq
-done < samples_tmp.txt
+  rm rawdata/$SAMPLE.R1.fq
 
-echoWithDate "Quality filtering, truncating reads to 200bp..."
-mkdir phix_filtered/tempdir
-# merge all sample fastq files
-while ((j++)); read SAMPLE
-  do
-  echo -ne "Processing sample: $SAMPLE ($j / $NSAMPLES)\r"
-  usearch10 -fastq_filter phix_filtered/$SAMPLE.R1.fq -fastq_maxee 1.0 -fastaout phix_filtered/tempdir/$SAMPLE.R1.QCout.fa -fastq_trunclen 200 -relabel @ -threads $MAX_THREADS -quiet
+  usearch10 -fastq_filter phix_filtered/$SAMPLE.R1.fq -fastq_maxee 1.0 -fastaout phix_filtered/tempdir/$SAMPLE.R1.QCout.fa -fastq_trunclen 250 -relabel @ -threads $MAX_THREADS -quiet
   cat phix_filtered/tempdir/$SAMPLE.R1.QCout.fa >> all.singlereads.nophix.qc.R1.fa
+  rm phix_filtered/tempdir/$SAMPLE.R1.QCout.fa
 
   # Create concatenated fastq file of nonfiltered reads, with the sample labels
   usearch10 -fastx_relabel phix_filtered/$SAMPLE.R1.fq -prefix $SAMPLE$SAMPLESEP -fastqout phix_filtered/tempdir/$SAMPLE.R1.relabeled.fq -quiet
   cat phix_filtered/tempdir/$SAMPLE.R1.relabeled.fq >> all.singlereads.nophix.R1.fq
+  rm phix_filtered/$SAMPLE.R1.fq
 done < samples_tmp.txt
 
 echoWithDate "Dereplicating reads..."
@@ -52,11 +47,15 @@ usearch10 -fastx_uniques all.singlereads.nophix.qc.R1.fa -sizeout -fastaout uniq
 echoWithDate "Generating ASVs (zOTUs) from dereplicated reads..."
 usearch10 -unoise3 uniques.R1.fa -zotus zOTUs.R1.fa -quiet
 
+#####PUT AN IF HERE#####
+#sed 's/Zotu/ASV/g' zOTUs.R1.fa > ASVs.R1.fa
+
 echoWithDate "Finding all ASVs that match exactly with an already known ASV and renaming accordingly..."
 usearch10 -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
 usearch10 -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
 #combine hits with nohits
 cat ASVs_nohits_renamed.R1.fa >> ASVs.R1.fa
+#####THAT SHOULD END HERE#####
 
 echoWithDate "Predicting taxonomy of the ASVs..."
 usearch10 -sintax ASVs.R1.fa -db "$TAXDB" -tabbedout ASVs.R1.sintax -strand both -sintax_cutoff 0.8 -threads $MAX_THREADS -quiet
