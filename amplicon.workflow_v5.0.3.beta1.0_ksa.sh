@@ -263,9 +263,10 @@ echo "Retrieving sequenced files and removing PhiX contamination."
 # copy sample sequence files to current directory,
 # Filter PhiX
 # Path to sequences folders: $SEQPATH = /space/sequences/
- 
-  while read SAMPLES
+  NSAMPLES=$(wc -w < samples_tmp.txt)
+  while ((i++)); read SAMPLES
   do
+      echo -ne "Processing sample: $SAMPLES ($i / $NSAMPLES)\r"
       # Retrieve sequenced reads
       a="_";
       NAME=$SAMPLES;
@@ -343,8 +344,10 @@ mkdir phix_filtered/tempdir
 
 # QC
 # merge all sample fastq files
-while read SAMPLES
+NSAMPLES=$(wc -w < samples_tmp.txt)
+while ((j++)); read SAMPLES
     do
+    echo -ne "Processing sample: $SAMPLES ($i / $NSAMPLES)\r"
     NAME=$SAMPLES
     usearch10 -fastq_filter phix_filtered/$NAME.R1.fq -fastq_maxee 1.0 -fastaout phix_filtered/tempdir/$NAME.R1.QCout.fa -fastq_trunclen 200 -relabel @ -threads $NUMTHREADS -quiet
     #(-fastq_minlen 250 )
