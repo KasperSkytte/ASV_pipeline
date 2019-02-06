@@ -490,7 +490,7 @@ FASTAFILE=$1
 ZOTUSFILE=$2
 SINTAX=$3
 sed 's/Zotu/Otu/g' $ZOTUSFILE > zotus.tmp
-usearch10 -otutab $FASTAFILE -otus zotus.tmp -otutabout zotutable_notax.txt -id 0.97 -threads $NUMTHREADS -quiet -sample_delim .
+usearch10 -otutab $FASTAFILE -zotus zotus.tmp -otutabout zotutable_notax.txt -id 0.97 -threads $NUMTHREADS -quiet -sample_delim . #this needs to be same as with filter_phix+fastq_filter
 sed -i 's/Otu/Zotu/g' zotutable_notax.txt
 rm zotus.tmp
 
