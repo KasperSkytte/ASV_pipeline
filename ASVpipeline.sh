@@ -112,7 +112,7 @@ sintaxtofastaheader
 }
 
 echoWithDate "Generating ASV table..."
-usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout ASVtable.tsv -mapout ASVmapping.txt -threads $MAX_THREADS -sample_delim $SAMPLESEP -quiet
+usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout ASVtable.tsv -threads $MAX_THREADS -sample_delim $SAMPLESEP -quiet
 #sort ASVtable
 head -n 1 ASVtable.tsv > tmp
 tail -n +2 ASVtable.tsv | sort -V >> tmp
