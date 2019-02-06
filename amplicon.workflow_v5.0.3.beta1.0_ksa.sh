@@ -493,6 +493,10 @@ sed 's/Zotu/Otu/g' $ZOTUSFILE > zotus.tmp
 usearch10 -otutab $FASTAFILE -zotus zotus.tmp -otutabout zotutable_notax.txt -id 0.97 -threads $NUMTHREADS -quiet -sample_delim . #this needs to be same as with filter_phix+fastq_filter
 sed -i 's/Otu/Zotu/g' zotutable_notax.txt
 rm zotus.tmp
+#sort
+head -n 1 zotutable_notax.txt > tmp
+tail -n +2 zotutable_notax.txt | sort -V >> tmp
+mv tmp zotutable_notax.txt
 
 bash /space/users/ey/Documents/Scripts/otutab_sintax_to_ampvis.v1.1.sh -i zotutable_notax.txt -t $SINTAX -r $REFDATABASE
 
