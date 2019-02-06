@@ -116,8 +116,11 @@ mkdir -p /tmp/$USER
 # FUNCTIONS
 #########################################################
 
-Find_reads_phix_Function () {
+echoWithDate() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')]: $1"
+}
 
+Find_reads_phix_Function () {
 # Check that samples file exists, if yes, make sure carriage return is not used.
 echo ""
 echo "Checking the presence of a \"samples\" file"
