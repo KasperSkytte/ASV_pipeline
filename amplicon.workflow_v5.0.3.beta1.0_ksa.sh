@@ -554,6 +554,15 @@ fi
 
 }
 
+MapASVsToASVdatabase () {
+  ASVDB=/space/users/ksa/Documents/Work/ASVs/ASVsV13_v1.0_20190205/ASVs.R1.fa
+  echoWithDate "Finding all ASVs that match exactly with an already known ASV and renaming accordingly..."
+  usearch10 -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both \
+    -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $NUMTHREADS -quiet
+  usearch10 -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
+  #combine hits with nohits
+  cat ASVs_nohits_renamed.R1.fa >> ASVs.R1.fa
+}
 
 Taxonomy_reports_Function () {
 # Taxonomy summary reports
