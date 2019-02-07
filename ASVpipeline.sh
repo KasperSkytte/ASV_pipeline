@@ -48,7 +48,6 @@ while ((i++)); read SAMPLE
             cat phix_filtered/tempdir/$SAMPLE.R1.relabeled.fq >> all.singlereads.nophix.R1.fq
             rm phix_filtered/$SAMPLE.R1.fq
         fi
-        rm phix_filtered/$SAMPLE.R1.fq
     fi
 done < samples_tmp.txt
 
