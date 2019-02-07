@@ -63,12 +63,17 @@ usearch10 -usearch_global zOTUs.R1.fa -db /space/users/ey/Documents/Amplicon_dat
   -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched prefilt_out.fa -threads $MAX_THREADS
 mv prefilt_out.fa zOTUs.R1.fa
 
-echoWithDate "Finding all ASVs that match exactly with an already known ASV and renaming accordingly..."
-usearch10 -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
-usearch10 -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
-#combine hits with nohits
-cat ASVs_nohits_renamed.R1.fa >> ASVs.R1.fa
-#####THAT SHOULD END HERE#####
+if [ -s "$ASVDB" ]
+  then
+    echoWithDate "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
+    usearch10 -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both \
+      -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
+    usearch10 -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
+    #combine hits with nohits
+    cat ASVs_nohits_renamed.R1.fa >> ASVs.R1.fa
+  else
+    sed 's/Zotu/ASV/g' zOTUs.R1.fa > ASVs.R1.fa
+fi
 
 echoWithDate "Predicting taxonomy of the ASVs..."
 usearch10 -sintax ASVs.R1.fa -db "$TAXDB" -tabbedout ASVs.R1.sintax -strand both -sintax_cutoff 0.8 -threads $MAX_THREADS -quiet
