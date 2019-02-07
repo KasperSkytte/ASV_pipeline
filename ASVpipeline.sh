@@ -91,6 +91,8 @@ rm -rf phix_filtered
 rm -f samples_tmp.txt
 rm -f ASVs_nohits.R1.fa
 rm -f ASVs_nohits_renamed.R1.fa
+rm -f all.singlereads.nophix.R1.fq
+rm -f all.singlereads.nophix.qc.R1.fa
 
 duration=$(printf '%02dh:%02dm:%02ds\n' $(($SECONDS/3600)) $(($SECONDS%3600/60)) $(($SECONDS%60)))
-echoWithDate "Done in: $duration!"
+echoWithDate "Done in: $duration"
