@@ -4,9 +4,9 @@ set -e
 set -o pipefail
 
 MAX_THREADS=${1:-$((`nproc`-2))}
-SEQPATH=/home/kapper/dragun/space/sequences/
-TAXDB=/home/kapper/Dropbox/AAU/PhD/Projects/ESV\ pipeline/runs/MiDAS3.0/midas30_20190109/output/ESVs_w_sintax.fa
-ASVDB=/home/kapper/Dropbox/AAU/PhD/Projects/ASV_test/midasfull/200bp/ASVs.R1.fa
+SEQPATH=/space/sequences/
+TAXDB=/space/users/ksa/Documents/Work/ESV_pipeline_final/midas30_20190109/output/ESVs_w_sintax.fa
+ASVDB=/space/users/ksa/Documents/Work/ASVs/ASVsV13_v1.0_20190205/ASVs.R1.fa
 SAMPLESEP="_"
 
 rm -rf rawdata/
