@@ -58,8 +58,10 @@ usearch10 -fastx_uniques all.singlereads.nophix.qc.R1.fa -sizeout -fastaout uniq
 echoWithDate "Generating ASVs (zOTUs) from dereplicated reads..."
 usearch10 -unoise3 uniques.R1.fa -zotus zOTUs.R1.fa -quiet
 
-#####PUT AN IF HERE#####
-#sed 's/Zotu/ASV/g' zOTUs.R1.fa > ASVs.R1.fa
+echoWithDate "Filtering ASVs that are <60% similar to reference reads..."
+usearch10 -usearch_global zOTUs.R1.fa -db /space/users/ey/Documents/Amplicon_databases/gg_13_8_otus97/97_otus.fasta \
+  -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched prefilt_out.fa -threads $MAX_THREADS
+mv prefilt_out.fa zOTUs.R1.fa
 
 echoWithDate "Finding all ASVs that match exactly with an already known ASV and renaming accordingly..."
 usearch10 -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
