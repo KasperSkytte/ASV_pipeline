@@ -12,7 +12,6 @@ SAMPLESEP="_"
 rm -rf rawdata/
 rm -rf phix_filtered/
 mkdir -p rawdata
-mkdir -p phix_filtered
 mkdir -p phix_filtered/tempdir
 
 echoWithDate() {
@@ -26,19 +25,31 @@ cat samples | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > samples
 NSAMPLES=$(wc -w < samples_tmp.txt)
 while ((i++)); read SAMPLE
   do
-  echo -ne "Processing sample: $SAMPLE ($i / $NSAMPLES)\r"
-  find "$SEQPATH" -name $SAMPLE$SAMPLESEP*R1* 2>/dev/null -exec gzip -cd {} \; > rawdata/$SAMPLE.R1.fq
-  usearch10 -filter_phix rawdata/$SAMPLE.R1.fq -output phix_filtered/$SAMPLE.R1.fq -threads $MAX_THREADS -quiet
-  rm rawdata/$SAMPLE.R1.fq
-
-  usearch10 -fastq_filter phix_filtered/$SAMPLE.R1.fq -fastq_maxee 1.0 -fastaout phix_filtered/tempdir/$SAMPLE.R1.QCout.fa -fastq_trunclen 250 -relabel @ -threads $MAX_THREADS -quiet
-  cat phix_filtered/tempdir/$SAMPLE.R1.QCout.fa >> all.singlereads.nophix.qc.R1.fa
-  rm phix_filtered/tempdir/$SAMPLE.R1.QCout.fa
-
-  # Create concatenated fastq file of nonfiltered reads, with the sample labels
-  usearch10 -fastx_relabel phix_filtered/$SAMPLE.R1.fq -prefix $SAMPLE$SAMPLESEP -fastqout phix_filtered/tempdir/$SAMPLE.R1.relabeled.fq -quiet
-  cat phix_filtered/tempdir/$SAMPLE.R1.relabeled.fq >> all.singlereads.nophix.R1.fq
-  rm phix_filtered/$SAMPLE.R1.fq
+    echo -ne "Processing sample: $SAMPLE ($i / $NSAMPLES)\r"
+    find "$SEQPATH" -name $SAMPLE$SAMPLESEP*R1* 2>/dev/null -exec gzip -cd {} \; > rawdata/$SAMPLE.R1.fq
+    
+    #continue only if the sample was actually found and is not empty
+    if [ -s "rawdata/$SAMPLE.R1.fq" ]
+      then
+        #filter PhiX
+        usearch10 -filter_phix rawdata/$SAMPLE.R1.fq -output phix_filtered/$SAMPLE.R1.fq -threads $MAX_THREADS -quiet
+        rm rawdata/$SAMPLE.R1.fq
+        
+        #QC
+        if [ -s "phix_filtered/$SAMPLE.R1.fq" ]
+          then
+            usearch10 -fastq_filter phix_filtered/$SAMPLE.R1.fq -fastq_maxee 1.0 -fastaout phix_filtered/tempdir/$SAMPLE.R1.QCout.fa \
+              -fastq_trunclen 250 -relabel @ -threads $MAX_THREADS -quiet
+            cat phix_filtered/tempdir/$SAMPLE.R1.QCout.fa >> all.singlereads.nophix.qc.R1.fa
+            rm phix_filtered/tempdir/$SAMPLE.R1.QCout.fa
+            
+            # Create concatenated fastq file of nonfiltered reads, with the sample labels
+            usearch10 -fastx_relabel phix_filtered/$SAMPLE.R1.fq -prefix $SAMPLE$SAMPLESEP -fastqout phix_filtered/tempdir/$SAMPLE.R1.relabeled.fq -quiet
+            cat phix_filtered/tempdir/$SAMPLE.R1.relabeled.fq >> all.singlereads.nophix.R1.fq
+            rm phix_filtered/$SAMPLE.R1.fq
+        fi
+        rm phix_filtered/$SAMPLE.R1.fq
+    fi
 done < samples_tmp.txt
 
 echoWithDate "Dereplicating reads..."
