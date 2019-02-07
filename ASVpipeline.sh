@@ -59,7 +59,7 @@ usearch10 -unoise3 uniques.R1.fa -zotus zOTUs.R1.fa -quiet
 
 echoWithDate "Filtering ASVs that are <60% similar to reference reads..."
 usearch10 -usearch_global zOTUs.R1.fa -db /space/users/ey/Documents/Amplicon_databases/gg_13_8_otus97/97_otus.fasta \
-  -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched prefilt_out.fa -threads $MAX_THREADS
+  -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched prefilt_out.fa -threads $MAX_THREADS -quiet
 mv prefilt_out.fa zOTUs.R1.fa
 
 if [ -s "$ASVDB" ]
