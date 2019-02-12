@@ -56,7 +56,7 @@ echoWithDate "Dereplicating reads..."
 usearch10 -fastx_uniques all.singlereads.nophix.qc.R1.fa -sizeout -fastaout uniques.R1.fa -relabel Uniq -quiet
 
 echoWithDate "Generating ASVs (zOTUs) from dereplicated reads..."
-usearch10 -unoise3 uniques.R1.fa -zotus zOTUs.R1.fa -quiet
+usearch10 -unoise3 uniques.R1.fa -zotus zOTUs.R1.fa
 
 echoWithDate "Filtering ASVs that are <60% similar to reference reads..."
 if [ -s "$prefilterDB" ]
@@ -91,7 +91,7 @@ if [ -s "$TAXDB" ]
 fi
 
 echoWithDate "Generating ASV table..."
-usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout ASVtable.tsv -threads $MAX_THREADS -sample_delim $SAMPLESEP -quiet
+usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout ASVtable.tsv -threads $MAX_THREADS -sample_delim $SAMPLESEP
 #sort ASVtable
 head -n 1 ASVtable.tsv > tmp
 tail -n +2 ASVtable.tsv | sort -V >> tmp
