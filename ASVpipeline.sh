@@ -7,6 +7,7 @@ MAX_THREADS=${1:-$((`nproc`-2))}
 SEQPATH=/space/sequences/
 TAXDB=/space/users/ksa/Documents/Work/ESV_pipeline_final/midas30_20190109/output/ESVs_w_sintax.fa
 ASVDB=/space/users/ksa/Documents/Work/ASVs/ASVsV13_v1.0_20190205/ASVs.R1.fa
+prefilterDB=/space/users/ey/Documents/Amplicon_databases/gg_13_8_otus97/97_otus.fasta
 SAMPLESEP="_"
 
 rm -rf rawdata/
@@ -58,25 +59,36 @@ echoWithDate "Generating ASVs (zOTUs) from dereplicated reads..."
 usearch10 -unoise3 uniques.R1.fa -zotus zOTUs.R1.fa -quiet
 
 echoWithDate "Filtering ASVs that are <60% similar to reference reads..."
-usearch10 -usearch_global zOTUs.R1.fa -db /space/users/ey/Documents/Amplicon_databases/gg_13_8_otus97/97_otus.fasta \
-  -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched prefilt_out.fa -threads $MAX_THREADS -quiet
-mv prefilt_out.fa zOTUs.R1.fa
+if [ -s "$prefilterDB" ]
+  then
+    usearch10 -usearch_global zOTUs.R1.fa -db $prefilterDB \
+      -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched prefilt_out.fa -threads $MAX_THREADS -quiet
+    mv prefilt_out.fa zOTUs.R1.fa
+  else
+  	echo "Could not find prefilter reference database, continuing without prefiltering..."
+fi
 
+echoWithDate "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
 if [ -s "$ASVDB" ]
   then
-    echoWithDate "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
     usearch10 -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both \
       -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
     usearch10 -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
     #combine hits with nohits
     cat ASVs_nohits_renamed.R1.fa >> ASVs.R1.fa
   else
+  	echo "Could not find ASV database, continuing without renaming ASVs..."
     sed 's/Zotu/ASV/g' zOTUs.R1.fa > ASVs.R1.fa
 fi
 
 echoWithDate "Predicting taxonomy of the ASVs..."
-usearch10 -sintax ASVs.R1.fa -db "$TAXDB" -tabbedout ASVs.R1.sintax -strand both -sintax_cutoff 0.8 -threads $MAX_THREADS -quiet
-sort -V ASVs.R1.sintax -o ASVs.R1.sintax
+if [ -s "$TAXDB" ]
+  then
+    usearch10 -sintax ASVs.R1.fa -db "$TAXDB" -tabbedout ASVs.R1.sintax -strand both -sintax_cutoff 0.8 -threads $MAX_THREADS -quiet
+    sort -V ASVs.R1.sintax -o ASVs.R1.sintax
+  else
+    echo "Could not find taxonomy database, continuing without assigning taxonomy..."    
+fi
 
 echoWithDate "Generating ASV table..."
 usearch10 -otutab all.singlereads.nophix.R1.fq -zotus ASVs.R1.fa -otutabout ASVtable.tsv -threads $MAX_THREADS -sample_delim $SAMPLESEP -quiet
