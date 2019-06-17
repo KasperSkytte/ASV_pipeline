@@ -5,10 +5,10 @@ set -o pipefail
 
 usearch=$(which usearch11_32bit)
 MAX_THREADS=${1:-$((`nproc`-2))}
-SEQPATH=/home/kapper/dragun/space/sequences/
-TAXDB=/home/kapper/Dropbox/AAU/PhD/Projects/ESV\ pipeline/runs/MiDAS4.0_20190524/output/ESVs_w_sintax.fa
-ASVDB=/home/kapper/Dropbox/AAU/PhD/Projects/ASVdatabase/v2.0_20190514/ASVs.R1.fa
-prefilterDB=/home/kapper/dragun/space/users/ey/Documents/Amplicon_databases/gg_13_8_otus97/97_otus.fasta
+SEQPATH=/space/sequences/
+TAXDB=/space/databases/MiDAS4.0_20190524/output/ESVs_w_sintax.fa
+ASVDB=/space/databases/ASVdatabase/v2.0_20190514/ASVs.R1.fa
+prefilterDB=/space/databases/gg_13_8_otus97/97_otus.fasta
 SAMPLESEP="_"
 
 rm -rf rawdata/
