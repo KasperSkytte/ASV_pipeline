@@ -1,5 +1,5 @@
 # Bioinformatic pipeline for processing 16S rRNA amplicon data with exact Amplicon Sequence Variants (ASV's)
-The `ASVpipeline.sh` script is a complete linux `BASH` script performing the essential steps in amplicon sequence data processing primarily using [usearch](http://drive5.com/usearch/). 
+The `ASVpipeline.sh` script is a complete linux `BASH` script performing the essential steps in amplicon sequence data processing primarily using [usearch](http://drive5.com/usearch/). All you have to do is have a file in the current working directory called `samples`, where each line is a unique sample name as sequenced on the Illumina machine to process, and adjust the paths to where the raw sequences are located, the taxonomy database, etc at the start of the script. Then simply run the pipeline with fx `bash ASVpipeline.sh 40`, where `40` tells the script to use max 40 threads on the computer.
 
 Outline of the steps performed
 
