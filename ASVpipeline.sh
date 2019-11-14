@@ -1,14 +1,14 @@
 #!/bin/bash
-# Set error check
+# Set error check, so script doesn't continue if a command fails
 set -e
 set -o pipefail
 
-usearch=$(which usearch11_32bit)
+usearch=$(which usearch10)
 MAX_THREADS=${1:-$((`nproc`-2))}
 SEQPATH=/space/sequences/
-TAXDB=/space/databases/MiDAS4.0_20190524/output/ESVs_w_sintax.fa
-ASVDB=/space/databases/ASVdatabase/v2.0_20190514/ASVs.R1.fa
-prefilterDB=/space/databases/gg_13_8_otus97/97_otus.fasta
+TAXDB=/space/databases/midas/MiDAS4.6_20191104/output/ESVs_w_sintax.fa
+ASVDB=/space/databases/midas/ASVDB_250bp/ASVsV13_250bp_v2.0_20190514/ASVs.R1.fa
+prefilterDB=$TAXDB
 SAMPLESEP="_"
 
 rm -rf rawdata/
@@ -72,7 +72,7 @@ fi
 echoWithDate "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
 if [ -s "$ASVDB" ]
   then
-    $usearch -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 1 -maxrejects 0 -strand both \
+    $usearch -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 0 -maxrejects 0 -top_hit_only -strand both \
       -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
     $usearch -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
     #combine hits with nohits
