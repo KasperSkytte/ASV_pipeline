@@ -73,7 +73,7 @@ fi
 echoWithDate "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
 if [ -s "$ASVDB" ]
   then
-    $usearch -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 0 -maxrejects 0 -top_hit_only -strand both \
+    $usearch -search_exact zOTUs.R1.fa -db $ASVDB -maxaccepts 0 -maxrejects 0 -strand both \
       -dbmatched ASVs.R1.fa -notmatched ASVs_nohits.R1.fa -threads $MAX_THREADS -quiet
     $usearch -fastx_relabel ASVs_nohits.R1.fa -prefix newASV -fastaout ASVs_nohits_renamed.R1.fa -quiet
     #combine hits with nohits
