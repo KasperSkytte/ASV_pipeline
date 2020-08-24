@@ -27,7 +27,7 @@ cat samples | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > samples
 NSAMPLES=$(wc -w < samples_tmp.txt)
 while ((i++)); read SAMPLE
   do
-    echo -ne "Processing sample: $SAMPLE ($i / $NSAMPLES)\r"
+    echo -ne "Processing sample ($i/$NSAMPLES): $SAMPLE\r"
     find "$SEQPATH" -name $SAMPLE$SAMPLESEP*R1* 2>/dev/null -exec gzip -cd {} \; > rawdata/$SAMPLE.R1.fq
     
     #continue only if the sample was actually found and is not empty
@@ -51,6 +51,7 @@ while ((i++)); read SAMPLE
             rm phix_filtered/$SAMPLE.R1.fq
         fi
     fi
+    echo -ne "\e[K"
 done < samples_tmp.txt
 
 echoWithDate "Dereplicating reads..."
