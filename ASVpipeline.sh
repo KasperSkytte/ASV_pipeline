@@ -16,8 +16,8 @@ set -o nounset
 VERSION="1.2"
 max_threads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/MiSeq/"
-taxdb="/space/databases/midas/MiDAS4.8_20200228/output/ESVs_w_sintax.fa"
-asvdb="/space/databases/midas/ASVDB_250bp/ASVsV13_250bp_v2.0_20190514/ASVs.R1.fa"
+taxdb="/software/Databases/MiDAS4.8_20200228.udb"
+asvdb="/software/Databases/MiDAS_ASVdatabase/ASVs.R1.fa"
 prefilterdb="$taxdb"
 samplesep="_"
 input="samples"
@@ -28,7 +28,7 @@ logFile="log.txt"
 usageError() {
   echo "Error: $1" 1>&2
   echo ""
-  eval "./$0 -h"
+  eval "$0 -h"
 }
 
 #function to add timestamps to progress messages
@@ -102,12 +102,12 @@ fi
 # check options
 if [ ! -s "$input" ]
 then
-  usageError "File '${input}' does not exist"
+  usageError "File '${input}' does not exist or is empty"
   exit 1
 fi
 if [ ! -s "$taxdb" ]
 then
-  usageError "File '${taxdb}' does not exist"
+  usageError "File '${taxdb}' does not exist or is empty"
   exit 1
 fi
 if [ ! -d "$fastq" ]
@@ -122,14 +122,14 @@ then
 fi
 if [ ! -s "$asvdb" ]
 then
-  usageError "File '${asvdb}' does not exist"
+  usageError "File '${asvdb}' does not exist or is empty"
   exit 1
 fi
 
 #wrap everything in a function to allow writing stderr+stdout to log file
 main() {
   echo "#################################################"
-  echo "Script: $(basename "$0")"
+  echo "Script: $(realpath "$0")"
   echo "System time: $(date '+%Y-%m-%d %H:%M:%S')"
   echo "Script version: ${VERSION}"
   echo "Current user name: $(whoami)"
@@ -151,13 +151,13 @@ main() {
   phix_filtered_temp="${phix_filtered}/tempdir"
   rm -rf "$tempdir"
   mkdir -p "$output" "$rawdata" "$phix_filtered_temp"
-  true > "$logFile"
 
   scriptMessage "Finding samples, filtering PhiX and bad reads, truncating to 250bp..."
   #clean samples file
   cat "$input" | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > "${tempdir}/samples.txt"
 
   nsamples=$(wc -w < "${tempdir}/samples.txt")
+  local i=0
   while ((i++)); read sample
   do
     echo -ne "Processing sample ($i/$nsamples): $sample\r"
@@ -184,7 +184,7 @@ main() {
             rm "${phix_filtered}/${sample}.R1.fq"
         fi
     else
-      echo "sample not found or empty file"
+      echo -e "\n  sample not found or empty file"
     fi
     echo -ne "\e[K"
   done < "${tempdir}/samples.txt"
@@ -242,4 +242,6 @@ main() {
   scriptMessage "Done in: $duration!"
 }
 
+#clear log file first if it happens to already exist
+true > "$logFile"
 main |& tee -a "$logFile"
