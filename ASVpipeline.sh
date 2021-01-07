@@ -146,7 +146,10 @@ main() {
   then
     echo "ASV database: $(realpath "$asvdb")"
   fi
-  echo "Prefiltering database: $(realpath "$prefilterdb")"
+  if [ -s "$prefilterdb" ]
+  then
+    echo "Prefiltering database: $(realpath "$prefilterdb")"
+  fi
   echo "Max. number of threads: ${max_threads}"
   echo "Log file: ${logFile}"
   echo "#################################################"
