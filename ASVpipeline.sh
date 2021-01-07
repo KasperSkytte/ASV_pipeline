@@ -136,7 +136,7 @@ main() {
   echo "Current user name: $(whoami)"
   echo "Current working directory: $(pwd)"
   echo "Input file with sample ID's: $(realpath "$input")"
-  echo "Output folder: $(realpath "$output")"
+  echo "Output folder: $(realpath -m "$output")"
   echo "fastq folder with Illumina reads: $(realpath "$fastq")"
   if [ -s "$taxdb" ]
   then
@@ -151,7 +151,7 @@ main() {
     echo "Prefiltering database: $(realpath "$prefilterdb")"
   fi
   echo "Max. number of threads: ${max_threads}"
-  echo "Log file: ${logFile}"
+  echo "Log file: $(realpath -m "$logFile")"
   echo "#################################################"
   echo
 
