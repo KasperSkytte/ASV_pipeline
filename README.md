@@ -27,7 +27,7 @@ Only `usearch11` is needed and expected to be in `$PATH`, the rest are just gene
 Just download the `ASVpipeline.sh` script, or clone this git repo, and run it with `bash ASVpipeline.sh -h`:
 
 ```
-$ ASVpipeline.sh -h
+$ bash ASVpipeline.sh -h
 ASV (zOTU) pipeline to process amplicon data. Forward reads only.
 Version: 1.2.1
 Options:
