@@ -116,11 +116,6 @@ then
   usageError "File '${input}' does not exist or is empty"
   exit 1
 fi
-if [ ! -s "$taxdb" ]
-then
-  usageError "File '${taxdb}' does not exist or is empty"
-  exit 1
-fi
 if [ ! -d "$fastq" ]
 then
   usageError "Directory '${fastq}' does not exist"
@@ -129,11 +124,6 @@ fi
 if [ ! -d "$output" ]
 then
   usageError "Directory '${output}' does not exist"
-  exit 1
-fi
-if [ ! -s "$asvdb" ]
-then
-  usageError "File '${asvdb}' does not exist or is empty"
   exit 1
 fi
 
