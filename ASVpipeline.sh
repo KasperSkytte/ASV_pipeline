@@ -113,7 +113,12 @@ fi
 # check options
 if [ ! -s "$input" ]
 then
-  usageError "File '${input}' does not exist"
+  usageError "File '${input}' does not exist or is empty"
+  exit 1
+fi
+if [ ! -s "$taxdb" ]
+then
+  usageError "File '${taxdb}' does not exist or is empty"
   exit 1
 fi
 if [ ! -d "$fastq" ]
@@ -126,11 +131,16 @@ then
   usageError "Directory '${output}' does not exist"
   exit 1
 fi
+if [ ! -s "$asvdb" ]
+then
+  usageError "File '${asvdb}' does not exist or is empty"
+  exit 1
+fi
 
 #wrap everything in a function to allow writing stderr+stdout to log file
 main() {
   echo "#################################################"
-  echo "Script: $(basename "$0")"
+  echo "Script: $(realpath "$0")"
   echo "System time: $(date '+%Y-%m-%d %H:%M:%S')"
   echo "Script version: ${VERSION}"
   echo "Current user name: $(whoami)"
@@ -158,13 +168,13 @@ main() {
   phix_filtered_temp="${phix_filtered}/tempdir"
   rm -rf "$tempdir"
   mkdir -p "$output" "$rawdata" "$phix_filtered_temp"
-  true > "$logFile"
 
   scriptMessage "Finding samples, filtering PhiX and bad reads, truncating to 250bp..."
   #clean samples file
   cat "$input" | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > "${tempdir}/samples.txt"
 
   nsamples=$(wc -w < "${tempdir}/samples.txt")
+  local i=0
   while ((i++)); read sample
   do
     echo -ne "Processing sample ($i/$nsamples): $sample\r"
@@ -191,7 +201,7 @@ main() {
             rm "${phix_filtered}/${sample}.R1.fq"
         fi
     else
-      echo "sample not found or empty file"
+      echo -e "\n  sample not found or empty file"
     fi
     echo -ne "\e[K"
   done < "${tempdir}/samples.txt"
@@ -249,4 +259,6 @@ main() {
   scriptMessage "Done in: $duration!"
 }
 
+#clear log file first if it happens to already exist
+true > "$logFile"
 main |& tee -a "$logFile"
