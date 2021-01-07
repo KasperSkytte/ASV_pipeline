@@ -16,7 +16,7 @@ set -o nounset
 #variables
 VERSION="1.2.1"
 max_threads=$(($(nproc)-2))
-fastq="/space/sequences/Illumina/MiSeq/"
+fastq="/space/sequences/Illumina/"
 taxdb=""
 asvdb=""
 prefilterdb="$taxdb"
