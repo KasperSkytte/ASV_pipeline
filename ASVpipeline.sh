@@ -14,7 +14,7 @@ set -o nounset
 #set -o xtrace
 
 #variables
-VERSION="1.3"
+VERSION="1.3.1"
 max_threads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
@@ -44,7 +44,7 @@ while getopts ":hi:d:f:o:a:t:v" opt
 do
 case ${opt} in
   h )
-    echo "ASV (zOTU) pipeline to process amplicon data. Forward reads only."
+    echo "16S amplicon sequencing pipeline for Illumina forward or paired end reads."
     echo "Version: $VERSION"
     echo "Options:"
     echo "  -h    Display this help text and exit."
@@ -125,8 +125,9 @@ mkdir -p "$output"
 main() {
   echo "#################################################"
   echo "Script: $(realpath "$0")"
-  echo "System time: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "Script is available at: https://github.com/KasperSkytte/ASV_pipeline"
   echo "Script version: ${VERSION}"
+  echo "System time: $(date '+%Y-%m-%d %H:%M:%S')"
   echo "Current user name: $(whoami)"
   echo "Current working directory: $(pwd)"
   echo "Input file with sample ID's: $(realpath "$input")"
@@ -283,8 +284,7 @@ main() {
       -tabbedout "${tempdir}/ASVs.sintax" \
       -strand both \
       -sintax_cutoff 0.8 \
-      -threads "$max_threads" \
-      -quiet
+      -threads "$max_threads"
     sort -V "${tempdir}/ASVs.sintax" -o "${output}/ASVs.sintax"
   else
     scriptMessage " - Could not find taxonomy database, continuing without assigning taxonomy..."    
