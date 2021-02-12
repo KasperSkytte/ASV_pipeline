@@ -19,7 +19,6 @@ max_threads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
 asvdb=""
-prefilterdb="$taxdb"
 input="samples"
 output=$(pwd)
 
@@ -141,10 +140,6 @@ main() {
   then
     echo "ASV database: $(realpath "$asvdb")"
   fi
-  if [ -s "$prefilterdb" ]
-  then
-    echo "Prefiltering database: $(realpath "$prefilterdb")"
-  fi
   echo "Max. number of threads: ${max_threads}"
   echo "Log file: $(realpath -m "$logFile")"
   echo "#################################################"
@@ -208,16 +203,16 @@ main() {
     -quiet
 
   scriptMessage "Orienting sequences..."
-  if [ -s "$prefilterdb" ]
+  if [ -s "$taxdb" ]
   then
     usearch11 -orient "$all_merged_nophix" \
-      -db "$prefilterdb" \
+      -db "$taxdb" \
       -fastqout "${tempdir}/all_merged_nophix_oriented.fq" \
       -threads "$max_threads" \
       -quiet
     mv "${tempdir}/all_merged_nophix_oriented.fq" "$all_merged_nophix"
   else
-    scriptMessage " - Could not find prefilter reference database, continuing without orienting"
+    scriptMessage " - Could not find taxonomy database, continuing without orienting"
   fi
 
   scriptMessage "Filtering reads with expected error > 1.0..."
@@ -241,10 +236,10 @@ main() {
     -zotus "${tempdir}/zOTUs.fa"
 
   scriptMessage "Filtering ASVs that are <60% similar to reference reads..."
-  if [ -s "$prefilterdb" ]
+  if [ -s "$taxdb" ]
   then
     usearch11 -usearch_global "${tempdir}/zOTUs.fa" \
-      -db "$prefilterdb" \
+      -db "$taxdb" \
       -strand both \
       -id 0.6 \
       -maxaccepts 1 \
@@ -254,7 +249,7 @@ main() {
       -quiet
     mv "${tempdir}/prefilt_out.fa" "${tempdir}/zOTUs.fa"
   else
-    scriptMessage " - Could not find prefilter reference database, continuing without prefiltering..."
+    scriptMessage " - Could not find taxonomy database, continuing without prefiltering..."
   fi
 
   scriptMessage "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
