@@ -163,77 +163,137 @@ main() {
   mkdir -p "$rawdata"
 
   #clean samples file
-  cat "$input" | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > "${tempdir}/samples.txt"
+    tr "\r" "\n" < "$input" |\
+    sed -e '$a\' |\
+    sed -e '/^$/d' -e 's/ //g' > "${tempdir}/samples.txt"
 
   nsamples=$(wc -w < "${tempdir}/samples.txt")
+  scriptMessage "Finding and unpacking ${nsamples} sample(s)..."
   local i=0
-  while ((i++)); read sample
+  while ((i++)); read -r sample
   do
-    echo -ne "Processing sample ($i/$nsamples): $sample\r"
-    find "$fastq" -name "${sample}${samplesep}*R1*" 2>/dev/null -exec gzip -cd {} \; > "${rawdata}/${sample}.R1.fq"
-    
-    #continue only if the sample was actually found and is not empty
-    if [ -s "${rawdata}/${sample}.R1.fq" ]
-      then
-        #filter PhiX
-        usearch11 -filter_phix "${rawdata}/${sample}.R1.fq" -output "${phix_filtered}/${sample}.R1.fq" -threads "$max_threads" -quiet
-        rm "${rawdata}/${sample}.R1.fq"
-        
-        #QC
-        if [ -s "${phix_filtered}/${sample}.R1.fq" ]
-          then
-            usearch11 -fastq_filter "${phix_filtered}/${sample}.R1.fq" -fastq_maxee 1.0 -fastaout "${phix_filtered_temp}/${sample}.R1.QCout.fa" \
-              -fastq_trunclen 250 -relabel @ -threads "$max_threads" -quiet
-            cat "${phix_filtered_temp}/${sample}.R1.QCout.fa" >> "${tempdir}/all.singlereads.nophix.qc.R1.fa"
-            rm "${phix_filtered_temp}/${sample}.R1.QCout.fa"
-            
-            # Create concatenated fastq file of nonfiltered reads, with the sample labels
-            usearch11 -fastx_relabel "${phix_filtered}/${sample}.R1.fq" -prefix ${sample}${samplesep} -fastqout "${phix_filtered_temp}/${sample}.R1.relabeled.fq" -quiet
-            cat "${phix_filtered_temp}/${sample}.R1.relabeled.fq" >> "${tempdir}/all.singlereads.nophix.R1.fq"
-            rm "${phix_filtered}/${sample}.R1.fq"
-        fi
-    else
-      echo -e "\n  sample not found or empty file"
+    echo "($i/$nsamples) $sample"
+    sample="${sample}_"
+    find "$fastq" \
+      -type f \
+      -name "*${sample}*R1*.f*q.gz" \
+      -exec gzip -cd {} \; > "${rawdata}/${sample}R1.fq" 2> /dev/null
+    if [ ! -s "${rawdata}/${sample}R1.fq" ]
+    then
+      echo " - R1 file not found or empty"
     fi
-    echo -ne "\e[K"
+    find "$fastq" \
+      -type f \
+      -name "*${sample}*R2*.f*q.gz" \
+      -exec gzip -cd {} \; > "${rawdata}/${sample}R2.fq" 2> /dev/null
+    if [ ! -s "${rawdata}/${sample}R2.fq" ]
+    then
+      echo " - R2 file not found or empty"
+    fi
   done < "${tempdir}/samples.txt"
 
+  scriptMessage "Merging forward and reverse reads..."
+  usearch11 -fastq_mergepairs "${rawdata}"/*_R1*.fq \
+    -reverse "${rawdata}"/*_R2*.fq \
+    -fastq_maxdiffs 10 \
+    -relabel @ \
+    -fastqout "${tempdir}"/all_merged.fq \
+    -threads "$max_threads" \
+    -quiet
+
+  scriptMessage "Filtering reads containing PhiX spike-in..."
+  all_merged_nophix="${tempdir}/all_merged_nophix.fq"
+  usearch11 -filter_phix "${tempdir}/all_merged.fq" \
+    -output "$all_merged_nophix" \
+    -threads "$max_threads" \
+    -quiet
+
+  scriptMessage "Orienting sequences..."
+  if [ -s "$prefilterdb" ]
+  then
+    usearch11 -orient "$all_merged_nophix" \
+      -db "$prefilterdb" \
+      -fastqout "${tempdir}/all_merged_nophix_oriented.fq" \
+      -threads "$max_threads" \
+      -quiet
+    mv "${tempdir}/all_merged_nophix_oriented.fq" "$all_merged_nophix"
+  else
+    scriptMessage " - Could not find prefilter reference database, continuing without orienting"
+  fi
+
+  scriptMessage "Filtering reads with expected error > 1.0..."
+  usearch11 -fastq_filter \
+    "$all_merged_nophix" \
+    -fastq_maxee 1.0 \
+    -fastaout "${tempdir}/all_filtered.fa" \
+    -threads "$max_threads" \
+    -quiet
+
   scriptMessage "Dereplicating reads..."
-  usearch11 -fastx_uniques "${tempdir}/all.singlereads.nophix.qc.R1.fa" -sizeout -fastaout "${tempdir}/uniques.R1.fa" -relabel Uniq -quiet
+  usearch11 -fastx_uniques \
+    "${tempdir}/all_filtered.fa" \
+    -sizeout \
+    -fastaout "${tempdir}/all_uniques.fa" \
+    -relabel Uniq \
+    -quiet
 
   scriptMessage "Generating ASVs (zOTUs) from dereplicated reads..."
-  usearch11 -unoise3 "${tempdir}/uniques.R1.fa" -zotus "${tempdir}/zOTUs.R1.fa"
+  usearch11 -unoise3 "${tempdir}/all_uniques.fa" \
+    -zotus "${tempdir}/zOTUs.fa"
 
   scriptMessage "Filtering ASVs that are <60% similar to reference reads..."
   if [ -s "$prefilterdb" ]
-    then
-      usearch11 -usearch_global "${tempdir}/zOTUs.R1.fa" -db $prefilterdb \
-        -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched "${tempdir}/prefilt_out.fa" -threads "$max_threads" -quiet
-      mv "${tempdir}/prefilt_out.fa" "${tempdir}/zOTUs.R1.fa"
-    else
-      echo "Could not find prefilter reference database, continuing without prefiltering..."
+  then
+    usearch11 -usearch_global "${tempdir}/zOTUs.fa" \
+      -db "$prefilterdb" \
+      -strand both \
+      -id 0.6 \
+      -maxaccepts 1 \
+      -maxrejects 8 \
+      -matched "${tempdir}/prefilt_out.fa" \
+      -threads "$max_threads" \
+      -quiet
+    mv "${tempdir}/prefilt_out.fa" "${tempdir}/zOTUs.fa"
+  else
+    scriptMessage " - Could not find prefilter reference database, continuing without prefiltering..."
   fi
 
   scriptMessage "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
   if [ -s "$asvdb" ]
-    then
-      usearch11 -search_exact "${tempdir}/zOTUs.R1.fa" -db "$asvdb" -maxaccepts 0 -maxrejects 0 -strand both \
-        -dbmatched "${output}/ASVs.R1.fa" -notmatched "${tempdir}/ASVs_nohits.R1.fa" -threads "$max_threads" -quiet
-      usearch11 -fastx_relabel "${tempdir}/ASVs_nohits.R1.fa" -prefix newASV -fastaout "${tempdir}/ASVs_nohits_renamed.R1.fa" -quiet
-      #combine hits with nohits
-      cat "${tempdir}/ASVs_nohits_renamed.R1.fa" >> "${output}/ASVs.R1.fa"
-    else
-      echo "Could not find ASV database, continuing without renaming ASVs..."
-      sed 's/Zotu/ASV/g' "${tempdir}/zOTUs.R1.fa" > "${output}/ASVs.R1.fa"
+  then
+    usearch11 -search_exact "${tempdir}/zOTUs.fa" \
+      -db "$asvdb" \
+      -maxaccepts 0 \
+      -maxrejects 0 \
+      -strand both \
+      -dbmatched "${output}/ASVs.fa" \
+      -notmatched "${tempdir}/ASVs_nohits.fa" \
+      -threads "$max_threads" \
+      -quiet
+    usearch11 -fastx_relabel "${tempdir}/ASVs_nohits.fa" \
+      -prefix newASV \
+      -fastaout "${tempdir}/ASVs_nohits_renamed.fa" \
+      -quiet
+    #combine hits with nohits
+    cat "${tempdir}/ASVs_nohits_renamed.fa" >> "${output}/ASVs.fa"
+  else
+    scriptMessage " - Could not find ASV database, continuing without renaming ASVs..."
+    sed 's/Zotu/ASV/g' "${tempdir}/zOTUs.fa" > "${output}/ASVs.fa"
   fi
 
   scriptMessage "Predicting taxonomy of the ASVs..."
   if [ -s "$taxdb" ]
-    then
-      usearch11 -sintax "${output}/ASVs.R1.fa" -db "$taxdb" -tabbedout "${output}/ASVs.R1.sintax" -strand both -sintax_cutoff 0.8 -threads "$max_threads" -quiet
-      sort -V "${output}/ASVs.R1.sintax" -o "${output}/ASVs.R1.sintax"
-    else
-      echo "Could not find taxonomy database, continuing without assigning taxonomy..."    
+  then
+    usearch11 -sintax "${output}/ASVs.fa" \
+      -db "$taxdb" \
+      -tabbedout "${tempdir}/ASVs.sintax" \
+      -strand both \
+      -sintax_cutoff 0.8 \
+      -threads "$max_threads" \
+      -quiet
+    sort -V "${tempdir}/ASVs.sintax" -o "${output}/ASVs.sintax"
+  else
+    scriptMessage " - Could not find taxonomy database, continuing without assigning taxonomy..."    
   fi
 
   scriptMessage "Generating ASV table..."
