@@ -152,13 +152,16 @@ main() {
   echo
 
   tempdir="${output}/temp"
+  if [ -d "$tempdir" ]
+  then
+    scriptMessage "Folder '${tempdir}' already exists, removing it before continuing..."
+    rm -rf "$tempdir"
+  fi
+  mkdir -p "$tempdir"
+  
   rawdata="${tempdir}/rawdata"
-  phix_filtered="${tempdir}/phix_filtered"
-  phix_filtered_temp="${phix_filtered}/tempdir"
-  rm -rf "$tempdir"
-  mkdir -p "$output" "$rawdata" "$phix_filtered_temp"
+  mkdir -p "$rawdata"
 
-  scriptMessage "Finding samples, filtering PhiX and bad reads, truncating to 250bp..."
   #clean samples file
   cat "$input" | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > "${tempdir}/samples.txt"
 
