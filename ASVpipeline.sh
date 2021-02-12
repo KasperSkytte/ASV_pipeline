@@ -23,7 +23,6 @@ prefilterdb="$taxdb"
 samplesep="_"
 input="samples"
 output=$(pwd)
-logFile="log.txt"
 
 #default error message if bad usage
 usageError() {
@@ -121,11 +120,8 @@ then
   usageError "Directory '${fastq}' does not exist"
   exit 1
 fi
-if [ ! -d "$output" ]
-then
-  usageError "Directory '${output}' does not exist"
-  exit 1
-fi
+
+mkdir -p "$output"
 
 #wrap everything in a function to allow writing stderr+stdout to log file
 main() {
@@ -253,5 +249,6 @@ main() {
 }
 
 #clear log file first if it happens to already exist
+logFile="${output}/log.txt"
 true > "$logFile"
 main |& tee -a "$logFile"
