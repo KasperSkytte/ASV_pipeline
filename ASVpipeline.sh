@@ -20,7 +20,6 @@ fastq="/space/sequences/Illumina/"
 taxdb=""
 asvdb=""
 prefilterdb="$taxdb"
-samplesep="_"
 input="samples"
 output=$(pwd)
 
@@ -297,14 +296,16 @@ main() {
   fi
 
   scriptMessage "Generating ASV table..."
-  usearch11 -otutab "${tempdir}/all.singlereads.nophix.R1.fq" -zotus "${output}/ASVs.R1.fa" -otutabout "${output}/ASVtable.tsv" -threads "$max_threads" -sample_delim "$samplesep"
+  samplesep="$(head -n 1 "$all_merged_nophix" | grep -o '[^0-9][0-9]*$' | grep -o '[^0-9]')"
+  echo "Guessed sample separator based on the first read to be '${samplesep}'"
+  usearch11 -otutab "$all_merged_nophix" \
+    -zotus "${output}/ASVs.fa" \
+    -otutabout "${tempdir}/ASVtable.tsv" \
+    -threads "$max_threads" \
+    -sample_delim "$samplesep"
   #sort ASVtable
-  head -n 1 "${output}/ASVtable.tsv" > "${tempdir}/tmp"
-  tail -n +2 "${output}/ASVtable.tsv" | sort -V >> "${tempdir}/tmp"
-  mv "${tempdir}/tmp" "${output}/ASVtable.tsv"
-
-  scriptMessage "Cleaning up..."
-  rm -rf "$tempdir"
+  head -n 1 "${tempdir}/ASVtable.tsv" > "${output}/ASVtable.tsv"
+  tail -n +2 "${tempdir}/ASVtable.tsv" | sort -V >> "${output}/ASVtable.tsv"
 
   #print elapsed time since script was invoked
   duration=$(printf '%02dh:%02dm:%02ds\n' $(($SECONDS/3600)) $(($SECONDS%3600/60)) $(($SECONDS%60)))
