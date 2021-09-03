@@ -29,7 +29,7 @@ logFile="log.txt"
 usageError() {
   echo "Error: $1" 1>&2
   echo ""
-  eval "$0 -h"
+  eval "bash $0 -h"
 }
 
 #function to add timestamps to progress messages
