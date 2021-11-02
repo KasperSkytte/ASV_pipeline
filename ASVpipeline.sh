@@ -22,7 +22,7 @@ asvdb=""
 prefilterdb="$taxdb"
 samplesep="_"
 input="samples"
-output=$(pwd)
+output="$(pwd)/output"
 logFile="log.txt"
 
 #default error message if bad usage
@@ -121,9 +121,11 @@ then
   usageError "Directory '${fastq}' does not exist"
   exit 1
 fi
-if [ ! -d "$output" ]
+
+mkdir -p "$output"
+if [ -n "$(ls -A ${output})" ]
 then
-  usageError "Directory '${output}' does not exist"
+  echo "The directory ${output} is not empty, please clear. Exiting..."
   exit 1
 fi
 
