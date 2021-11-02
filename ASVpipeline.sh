@@ -13,6 +13,12 @@ set -o nounset
 #print exactly what gets executed (useful for debugging)
 #set -o xtrace
 
+#set DK timezone if not set already
+if [ -z $(env | grep '^TZ=') ]
+then
+  TZ="Europe/Copenhagen"
+fi
+
 #variables
 VERSION="1.2.1"
 max_threads=$(($(nproc)-2))
@@ -23,7 +29,7 @@ prefilterdb="$taxdb"
 samplesep="_"
 input="samples"
 output="$(pwd)/output"
-logFile="log.txt"
+logFile="asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"
 
 #default error message if bad usage
 usageError() {
@@ -133,7 +139,7 @@ fi
 main() {
   echo "#################################################"
   echo "Script: $(realpath "$0")"
-  echo "System time: $(date '+%Y-%m-%d %H:%M:%S')"
+  echo "System time: $(date '+%Y-%m-%d %H:%M:%S') (${TZ})"
   echo "Script version: ${VERSION}"
   echo "Current user name: $(whoami)"
   echo "Current working directory: $(pwd)"
