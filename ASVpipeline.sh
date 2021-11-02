@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.2.1"
+VERSION="1.3.0"
 max_threads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
@@ -31,6 +31,7 @@ input="samples"
 output="$(pwd)/output"
 logFile="asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"
 keepfiles="no"
+chunksize=5
 
 #default error message if bad usage
 usageError() {
@@ -121,6 +122,14 @@ then
   usageError "usearch11 was not found in \$PATH. Please make sure it's installed and findable in \$PATH as exactly: 'usearch11'."
   exit 1
 fi
+
+#check for GNU parallel
+if [ -z "$(which parallel)" ]
+then
+  usageError "parallel was not found in \$PATH. Please make sure it's installed and findable in \$PATH as exactly: 'parallel'."
+  exit 1
+fi
+
 # check options
 if [ ! -s "$input" ]
 then
@@ -238,38 +247,85 @@ main() {
 
   scriptMessage "Filtering ASVs that are <60% similar to reference reads..."
   if [ -s "$prefilterdb" ]
-    then
-      usearch11 -usearch_global "${tempdir}/zOTUs.R1.fa" -db $prefilterdb \
-        -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched "${tempdir}/prefilt_out.fa" -threads "$max_threads" -quiet
-      mv "${tempdir}/prefilt_out.fa" "${tempdir}/zOTUs.R1.fa"
-    else
-      echo "Could not find prefilter reference database, continuing without prefiltering..."
+  then
+    usearch11 -usearch_global "${tempdir}/zOTUs.R1.fa" -db $prefilterdb \
+      -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched "${tempdir}/prefilt_out.fa" -threads "$max_threads" -quiet
+    mv "${tempdir}/prefilt_out.fa" "${tempdir}/zOTUs.R1.fa"
+  else
+    echo "Could not find prefilter reference database, continuing without prefiltering..."
   fi
 
   scriptMessage "Searching ASVs against already known ASVs (exact match) and renaming accordingly..."
   if [ -s "$asvdb" ]
-    then
-      usearch11 -search_exact "${tempdir}/zOTUs.R1.fa" -db "$asvdb" -maxaccepts 0 -maxrejects 0 -strand both \
-        -dbmatched "${output}/ASVs.R1.fa" -notmatched "${tempdir}/ASVs_nohits.R1.fa" -threads "$max_threads" -quiet
-      usearch11 -fastx_relabel "${tempdir}/ASVs_nohits.R1.fa" -prefix newASV -fastaout "${tempdir}/ASVs_nohits_renamed.R1.fa" -quiet
-      #combine hits with nohits
-      cat "${tempdir}/ASVs_nohits_renamed.R1.fa" >> "${output}/ASVs.R1.fa"
-    else
-      echo "Could not find ASV database, continuing without renaming ASVs..."
-      sed 's/Zotu/ASV/g' "${tempdir}/zOTUs.R1.fa" > "${output}/ASVs.R1.fa"
+  then
+    usearch11 -search_exact "${tempdir}/zOTUs.R1.fa" -db "$asvdb" -maxaccepts 0 -maxrejects 0 -strand both \
+      -dbmatched "${output}/ASVs.R1.fa" -notmatched "${tempdir}/ASVs_nohits.R1.fa" -threads "$max_threads" -quiet
+    usearch11 -fastx_relabel "${tempdir}/ASVs_nohits.R1.fa" -prefix newASV -fastaout "${tempdir}/ASVs_nohits_renamed.R1.fa" -quiet
+    #combine hits with nohits
+    cat "${tempdir}/ASVs_nohits_renamed.R1.fa" >> "${output}/ASVs.R1.fa"
+  else
+    echo "Could not find ASV database, continuing without renaming ASVs..."
+    sed 's/Zotu/ASV/g' "${tempdir}/zOTUs.R1.fa" > "${output}/ASVs.R1.fa"
   fi
 
   scriptMessage "Predicting taxonomy of the ASVs..."
   if [ -s "$taxdb" ]
-    then
-      usearch11 -sintax "${output}/ASVs.R1.fa" -db "$taxdb" -tabbedout "${output}/ASVs.R1.sintax" -strand both -sintax_cutoff 0.8 -threads "$max_threads" -quiet
-      sort -V "${output}/ASVs.R1.sintax" -o "${output}/ASVs.R1.sintax"
-    else
-      echo "Could not find taxonomy database, continuing without assigning taxonomy..."    
+  then
+    usearch11 -sintax "${output}/ASVs.R1.fa" -db "$taxdb" -tabbedout "${output}/ASVs.R1.sintax" -strand both -sintax_cutoff 0.8 -threads "$max_threads" -quiet
+    sort -V "${output}/ASVs.R1.sintax" -o "${output}/ASVs.R1.sintax"
+  else
+    echo "Could not find taxonomy database, continuing without assigning taxonomy..."    
   fi
 
   scriptMessage "Generating ASV table..."
-  usearch11 -otutab "${tempdir}/all.singlereads.nophix.R1.fq" -zotus "${output}/ASVs.R1.fa" -otutabout "${output}/ASVtable.tsv" -threads "$max_threads" -sample_delim "$samplesep"
+  #usearch11 -otutab does not scale linearly with the number of threads
+  #faster to split into smaller chunks using GNU parallel and merge
+  jobs=$(expr "${max_threads}" / "${chunksize}" - 1)
+  if [ $jobs -gt 1 ]
+  then
+    echo "Splitting into $jobs jobs using max $chunksize threads each..."
+    splitfolder="${tempdir}/split_asvtable"
+    mkdir -p $splitfolder
+
+    #split all unfiltered reads
+    usearch11 -fastx_split "${tempdir}/all.singlereads.nophix.R1.fq" \
+      -splits $jobs \
+      -outname "${splitfolder}/all.singlereads.nophix.R1_@" \
+      -quiet
+
+    #run a usearch11 -otutab command for each file
+    find "$splitfolder" -type f -name '*all.singlereads.nophix.R1_*' |\
+      parallel usearch11 -otutab {} \
+        -zotus "${output}/ASVs.R1.fa" \
+        -otutabout {}_asvtab.tsv \
+        -threads $chunksize \
+        -sample_delim "_" \
+        -quiet
+
+    #generate a comma-separated list of filenames to merge
+    asvtabslist=""
+    for asvtab in $(find "$splitfolder" -type f -iname '*_asvtab.tsv')
+    do
+      #exclude table if empty, ie only contains one line with "#OTU ID"
+      if [ "$(head -n 2 $asvtab | wc -l)" -lt 2 ]
+      then
+        continue
+      fi
+      if [ -z "$asvtabslist" ]
+      then
+        asvtabslist="$asvtab"
+      else
+        asvtabslist="$asvtabslist,$asvtab"
+      fi
+    done
+
+    #merge asvtables
+    usearch11 -otutab_merge "$asvtabslist" -output "${output}/ASVtable.tsv" -quiet
+  else
+    #dont run in parallel if max_threads <= 2*chunksize
+    usearch11 -otutab "${tempdir}/all.singlereads.nophix.R1.fq" -zotus "${output}/ASVs.R1.fa" -otutabout "${output}/ASVtable.tsv" -threads "$max_threads" -sample_delim "$samplesep"
+  fi
+
   #sort ASVtable
   head -n 1 "${output}/ASVtable.tsv" > "${tempdir}/tmp"
   tail -n +2 "${output}/ASVtable.tsv" | sort -V >> "${tempdir}/tmp"
