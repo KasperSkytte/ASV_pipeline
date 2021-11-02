@@ -153,16 +153,25 @@ main() {
   echo "fastq folder with Illumina reads: $(realpath "$fastq")"
   if [ -s "$taxdb" ]
   then
-    echo "Taxonomic database: $(realpath "$taxdb")"
+    taxdb="$(realpath ${taxdb})"
+  else
+    taxdb="<not provided>"
   fi
+  echo "Taxonomic database: ${taxdb}"
   if [ -s "$asvdb" ]
   then
-    echo "ASV database: $(realpath "$asvdb")"
+    asvdb="$(realpath ${asvdb})"
+  else
+    asvdb="<not provided>"
   fi
+  echo "ASV database: ${asvdb}"
   if [ -s "$prefilterdb" ]
   then
-    echo "Prefiltering database: $(realpath "$prefilterdb")"
+    prefilterdb="$(realpath ${prefilterdb})"
+  else
+    prefilterdb="<not provided>"
   fi
+  echo "Prefiltering database: ${prefilterdb}"
   echo "Keep all intermediate/temporary files: ${keepfiles}"
   echo "Max. number of threads: ${max_threads}"
   echo "Log file: $(realpath -m "$logFile")"
@@ -274,7 +283,7 @@ main() {
 
   #print elapsed time since script was invoked
   duration=$(printf '%02dh:%02dm:%02ds\n' $(($SECONDS/3600)) $(($SECONDS%3600/60)) $(($SECONDS%60)))
-  scriptMessage "Done in: $duration!"
+  scriptMessage "Done. Time elapsed: $duration!"
 }
 
 #clear log file first if it happens to already exist
