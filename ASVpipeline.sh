@@ -14,7 +14,7 @@ set -o nounset
 #set -o xtrace
 
 #set DK timezone if not set already
-if [ -z $(env | grep '^TZ=') ]
+if [ -z "$(env | grep '^TZ=')" ]
 then
   TZ="Europe/Copenhagen"
 fi
@@ -162,21 +162,21 @@ main() {
   echo "fastq folder with Illumina reads: $(realpath "$fastq")"
   if [ -s "$taxdb" ]
   then
-    taxdb="$(realpath ${taxdb})"
+    taxdb=$(realpath "${taxdb}")
   else
     taxdb="<not provided>"
   fi
   echo "Taxonomic database: ${taxdb}"
   if [ -s "$asvdb" ]
   then
-    asvdb="$(realpath ${asvdb})"
+    asvdb=$(realpath "${asvdb}")
   else
     asvdb="<not provided>"
   fi
   echo "ASV database: ${asvdb}"
   if [ -s "$prefilterdb" ]
   then
-    prefilterdb="$(realpath ${prefilterdb})"
+    prefilterdb=$(realpath "${prefilterdb}")
   else
     prefilterdb="<not provided>"
   fi
@@ -195,11 +195,12 @@ main() {
 
   scriptMessage "Finding samples, filtering PhiX and bad reads, truncating to 250bp..."
   #clean samples file
-  cat "$input" | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > "${tempdir}/samples.txt"
+  # shellcheck disable=SC1003
+  cat < "$input" | tr "\r" "\n" | sed -e '$a\' | sed -e '/^$/d' -e 's/ //g' > "${tempdir}/samples.txt"
 
   nsamples=$(wc -w < "${tempdir}/samples.txt")
   local i=0
-  while ((i++)); read sample
+  while ((i++)); read -r sample
   do
     echo -ne "Processing sample ($i/$nsamples): $sample\r"
     find "$fastq" -name "${sample}${samplesep}*R1*" 2>/dev/null -exec gzip -cd {} \; > "${rawdata}/${sample}.R1.fq"
@@ -248,7 +249,7 @@ main() {
   scriptMessage "Filtering ASVs that are <60% similar to reference reads..."
   if [ -s "$prefilterdb" ]
   then
-    usearch11 -usearch_global "${tempdir}/zOTUs.R1.fa" -db $prefilterdb \
+    usearch11 -usearch_global "${tempdir}/zOTUs.R1.fa" -db "$prefilterdb" \
       -strand both -id 0.6 -maxaccepts 1 -maxrejects 8 -matched "${tempdir}/prefilt_out.fa" -threads "$max_threads" -quiet
     mv "${tempdir}/prefilt_out.fa" "${tempdir}/zOTUs.R1.fa"
   else
@@ -279,13 +280,14 @@ main() {
 
   scriptMessage "Generating ASV table..."
   #usearch11 -otutab does not scale linearly with the number of threads
-  #faster to split into smaller chunks using GNU parallel and merge
-  jobs=$(expr "${max_threads}" / "${chunksize}" - 1)
+  #much faster to split into smaller chunks and run in parallel using
+  # GNU parallel and then merge tables afterwards
+  jobs=$((( "${max_threads}" / "${chunksize}" - 1)))
   if [ $jobs -gt 1 ]
   then
     echo "Splitting into $jobs jobs using max $chunksize threads each..."
     splitfolder="${tempdir}/split_asvtable"
-    mkdir -p $splitfolder
+    mkdir -p "$splitfolder"
 
     #split all unfiltered reads
     usearch11 -fastx_split "${tempdir}/all.singlereads.nophix.R1.fq" \
@@ -304,10 +306,10 @@ main() {
 
     #generate a comma-separated list of filenames to merge
     asvtabslist=""
-    for asvtab in $(find "$splitfolder" -type f -iname '*_asvtab.tsv')
+    while IFS= read -r -d '' asvtab
     do
       #exclude table if empty, ie only contains one line with "#OTU ID"
-      if [ "$(head -n 2 $asvtab | wc -l)" -lt 2 ]
+      if [ "$(head -n 2 "$asvtab" | wc -l)" -lt 2 ]
       then
         continue
       fi
@@ -317,7 +319,7 @@ main() {
       else
         asvtabslist="$asvtabslist,$asvtab"
       fi
-    done
+    done < <(find "$splitfolder" -type f -iname '*_asvtab.tsv' -print0)
 
     #merge asvtables
     usearch11 -otutab_merge "$asvtabslist" -output "${output}/ASVtable.tsv" -quiet
@@ -338,7 +340,7 @@ main() {
   fi
 
   #print elapsed time since script was invoked
-  duration=$(printf '%02dh:%02dm:%02ds\n' $(($SECONDS/3600)) $(($SECONDS%3600/60)) $(($SECONDS%60)))
+  duration=$(printf '%02dh:%02dm:%02ds\n' $((SECONDS/3600)) $((SECONDS%3600/60)) $((SECONDS%60)))
   scriptMessage "Done. Time elapsed: $duration!"
 }
 
