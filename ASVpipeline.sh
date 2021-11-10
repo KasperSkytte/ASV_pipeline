@@ -29,7 +29,7 @@ prefilterdb="$taxdb"
 samplesep="_"
 input="samples"
 output="$(pwd)/output"
-logFile="asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"
+logfilename="asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"
 keepfiles="no"
 chunksize=5
 
@@ -149,6 +149,8 @@ then
   exit 1
 fi
 
+logfilepath="${output}/${logfilename}"
+
 #wrap everything in a function to allow writing stderr+stdout to log file
 main() {
   echo "#################################################"
@@ -183,6 +185,7 @@ main() {
   echo "Prefiltering database: ${prefilterdb}"
   echo "Keep all intermediate/temporary files: ${keepfiles}"
   echo "Max. number of threads: ${maxthreads}"
+  echo "Log file: $(realpath -m "$logfilepath")"
   echo "#################################################"
   echo
 
@@ -406,5 +409,5 @@ main() {
 }
 
 #clear log file first if it happens to already exist
-true > "$logFile"
-main |& tee -a "$logFile"
+true > "$logfilepath"
+main |& tee -a "$logfilepath"
