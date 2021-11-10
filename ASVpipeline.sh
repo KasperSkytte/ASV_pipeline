@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.0"
+VERSION="1.3.1"
 maxthreads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
