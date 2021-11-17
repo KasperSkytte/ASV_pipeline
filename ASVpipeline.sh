@@ -79,6 +79,7 @@ case ${opt} in
       usageError "File '${taxdb}' does not exist"
       exit 1
     fi
+    prefilterdb="$taxdb"
     ;;
   f )
     fastq="$OPTARG"
