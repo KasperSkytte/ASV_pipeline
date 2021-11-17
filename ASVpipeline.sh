@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.1"
+VERSION="1.3.2"
 maxthreads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
@@ -79,6 +79,7 @@ case ${opt} in
       usageError "File '${taxdb}' does not exist"
       exit 1
     fi
+    prefilterdb="$taxdb"
     ;;
   f )
     fastq="$OPTARG"
