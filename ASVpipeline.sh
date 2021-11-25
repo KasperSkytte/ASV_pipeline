@@ -342,7 +342,7 @@ main() {
   #usearch11 -otutab does not scale linearly with the number of threads
   #much faster to split into smaller chunks and run in parallel using
   # GNU parallel and then merge tables afterwards
-  jobs=$((( "${maxthreads}" / "${chunksize}" - 1)))
+  jobs=$((( "${maxthreads}" / "${chunksize}")))
   if [ $jobs -gt 1 ]
   then
     echo "Splitting into $jobs jobs using max $chunksize threads each..."
@@ -357,11 +357,10 @@ main() {
 
     #run a usearch11 -otutab command for each file
     find "$splitfolder" -type f -name '*all.singlereads.nophix.R1_*' |\
-      parallel usearch11 -otutab {} \
+      parallel --progress usearch11 -otutab {} \
         -zotus "${output}/ASVs.R1.fa" \
         -otutabout {}_asvtab.tsv \
         -threads $chunksize \
-        -sample_delim "_" \
         -quiet
 
     #generate a comma-separated list of filenames to merge
