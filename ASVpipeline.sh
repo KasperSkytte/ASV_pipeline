@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.3"
+VERSION="1.3.4"
 maxthreads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
@@ -157,7 +157,7 @@ main() {
   echo "#################################################"
   echo "Script: $(realpath "$0")"
   echo "System time: $(date '+%Y-%m-%d %H:%M:%S') (${TZ})"
-  echo "Script version: ${VERSION}"
+  echo "Script version: ${VERSION} (available at https://github.com/kasperskytte/asv_pipeline)"
   echo "Current user name: $(whoami)"
   echo "Current working directory: $(pwd)"
   echo "Input file with sample ID's: $(realpath "$input")"
