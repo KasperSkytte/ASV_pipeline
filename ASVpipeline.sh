@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.4"
+VERSION="1.3.5"
 maxthreads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
@@ -356,10 +356,10 @@ main() {
       -quiet
 
     #run a usearch11 -otutab command for each file
-    find "$splitfolder" -type f -name '*all.singlereads.nophix.R1_*' |\
+    find "$splitfolder" -type f -name '*all.singlereads.nophix.R1_*.fa' |\
       parallel --progress usearch11 -otutab {} \
         -zotus "${output}/ASVs.R1.fa" \
-        -otutabout {}_asvtab.tsv \
+        -otutabout {.}_asvtab.tsv \
         -threads $chunksize \
         -sample_delim "$samplesep" \
         -quiet
