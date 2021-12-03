@@ -351,8 +351,8 @@ main() {
 
     #split all unfiltered reads
     usearch11 -fastx_split "${tempdir}/all.singlereads.nophix.R1.fq" \
-      -splits $jobs \
-      -outname "${splitfolder}/all.singlereads.nophix.R1_@" \
+      -splits $(($jobs - 1)) \
+      -outname "${splitfolder}/all.singlereads.nophix.R1_@.fa" \
       -quiet
 
     #run a usearch11 -otutab command for each file
