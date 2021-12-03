@@ -361,6 +361,7 @@ main() {
         -zotus "${output}/ASVs.R1.fa" \
         -otutabout {}_asvtab.tsv \
         -threads $chunksize \
+        -sample_delim "$samplesep" \
         -quiet
 
     #generate a comma-separated list of filenames to merge
