@@ -342,7 +342,7 @@ main() {
   #usearch11 -otutab does not scale linearly with the number of threads
   #much faster to split into smaller chunks and run in parallel using
   # GNU parallel and then merge tables afterwards
-  jobs=$((( "${maxthreads}" / "${chunksize}")))
+  jobs=$((( $maxthreads / $chunksize )))
   if [ $jobs -gt 1 ]
   then
     echo "Splitting into $jobs jobs using max $chunksize threads each..."
