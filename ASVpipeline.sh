@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.5"
+VERSION="1.3.6"
 maxthreads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
@@ -257,7 +257,8 @@ main() {
           "${tempdir}/all.singlereads.nophix.R1.fq"
         if [ "$keepfiles" == "no" ]
         then
-          rm "${phix_filtered}/${sample}.R1.fq"
+          rm "${phix_filtered}/${sample}.R1.fq" \
+            "${phix_filtered_temp}/${sample}.R1.relabeled.fq"
         fi
       fi
     else
