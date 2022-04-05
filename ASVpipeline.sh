@@ -20,18 +20,20 @@ then
 fi
 
 #variables
-VERSION="1.3.6"
+VERSION="1.3.7"
 maxthreads=$(($(nproc)-2))
 fastq="/space/sequences/Illumina/"
 taxdb=""
+prefilterdb="" #will be set to taxdb no matter
 asvdb=""
-prefilterdb="$taxdb"
-samplesep="_"
 input="samples"
 output="$(pwd)/output"
-logfilename="asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"
 keepfiles="no"
-chunksize=5
+# allow some "hard-coded" defaults to be set from bash env vars beforehand
+chunksize=${chunksize:-5}
+samplesep=${samplesep:-"_"}
+newASVprefix=${newASVprefix:-"newASV"}
+logfilename=${logfilename:-"asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"}
 
 #default error message if bad usage
 usageError() {
@@ -313,7 +315,7 @@ main() {
       -quiet
     usearch11 -fastx_relabel \
       "${tempdir}/ASVs_nohits.R1.fa" \
-      -prefix newASV \
+      -prefix "${newASVprefix}" \
       -fastaout "${tempdir}/ASVs_nohits_renamed.R1.fa" \
       -quiet
     #combine hits with nohits
@@ -362,7 +364,6 @@ main() {
         -zotus "${output}/ASVs.R1.fa" \
         -otutabout {.}_asvtab.tsv \
         -threads $chunksize \
-        -sample_delim "$samplesep" \
         -quiet
 
     #generate a comma-separated list of filenames to merge
