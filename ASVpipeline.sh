@@ -22,7 +22,7 @@ fi
 #variables
 VERSION="1.3.5"
 maxthreads=$(($(nproc)-2))
-fastq="/space/sequences/Illumina/"
+fastq="/raw_data/sequences/Illumina/"
 taxdb=""
 asvdb=""
 prefilterdb="$taxdb"
