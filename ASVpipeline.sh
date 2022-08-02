@@ -20,18 +20,20 @@ then
 fi
 
 #variables
-VERSION="1.3.5"
+VERSION="1.3.8"
 maxthreads=$(($(nproc)-2))
 fastq="/raw_data/sequences/Illumina/"
 taxdb=""
+prefilterdb="" #will be set to taxdb no matter
 asvdb=""
-prefilterdb="$taxdb"
-samplesep="_"
 input="samples"
 output="$(pwd)/output"
-logfilename="asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"
 keepfiles="no"
-chunksize=5
+# allow some "hard-coded" defaults to be set from bash env vars beforehand
+chunksize=${chunksize:-5}
+samplesep=${samplesep:-"_"}
+newASVprefix=${newASVprefix:-"newASV"}
+logfilename=${logfilename:-"asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"}
 
 #default error message if bad usage
 usageError() {
@@ -257,7 +259,8 @@ main() {
           "${tempdir}/all.singlereads.nophix.R1.fq"
         if [ "$keepfiles" == "no" ]
         then
-          rm "${phix_filtered}/${sample}.R1.fq"
+          rm "${phix_filtered}/${sample}.R1.fq" \
+            "${phix_filtered_temp}/${sample}.R1.relabeled.fq"
         fi
       fi
     else
@@ -312,7 +315,7 @@ main() {
       -quiet
     usearch11 -fastx_relabel \
       "${tempdir}/ASVs_nohits.R1.fa" \
-      -prefix newASV \
+      -prefix "${newASVprefix}" \
       -fastaout "${tempdir}/ASVs_nohits_renamed.R1.fa" \
       -quiet
     #combine hits with nohits
