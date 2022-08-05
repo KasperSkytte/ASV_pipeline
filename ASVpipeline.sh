@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.8"
+VERSION="1.3.9"
 maxthreads=$(($(nproc)-2))
 fastq="/raw_data/sequences/Illumina/"
 taxdb=""
@@ -35,13 +35,6 @@ samplesep=${samplesep:-"_"}
 newASVprefix=${newASVprefix:-"newASV"}
 logfilename=${logfilename:-"asvpipeline_$(date '+%Y%m%d_%H%M%S').txt"}
 
-#default error message if bad usage
-usageError() {
-  echo "Error: $1" 1>&2
-  echo ""
-  eval "bash $0 -h"
-}
-
 #function to add timestamps to progress messages
 scriptMessage() {
   #check user arguments
@@ -53,11 +46,8 @@ scriptMessage() {
   echo " *** [$(date '+%Y-%m-%d %H:%M:%S')] script message: $1"
 }
 
-while getopts ":hi:d:f:o:a:kt:v" opt
-do
-case ${opt} in
-  h )
-    echo "ASV (zOTU) pipeline to process amplicon data. Forward reads only."
+help() {
+  echo "ASV (zOTU) pipeline to process amplicon data. Forward reads only."
     echo "Version: $VERSION"
     echo "Options:"
     echo "  -h    Display this help text and exit."
@@ -70,6 +60,55 @@ case ${opt} in
     echo -e "  -t    Max number of threads to use. \n          (Default: all available except 2)"
     echo "  -v    Print version and exit."
     exit 1
+}
+
+#default error message if bad usage
+usageError() {
+  echo "Error: $1" 1>&2
+  echo ""
+  help
+}
+
+#function to check if executable(s) are available in $PATH
+#example usage: checkCommand usearch11 parallel somethirdprogram
+checkCommand() {
+  argsA=( "$@" )
+  local exit=false
+  for arg in "${argsA[@]}"
+  do
+    if ! which "$arg" &> /dev/null
+    then
+      echo "${arg}: command not found"
+      exit=true
+    fi
+  done
+
+  if $exit
+  then
+    echo
+    echo "Please make sure the above command(s) are installed, \
+executable, and available somewhere in the \$PATH variable."
+    exit 1
+  fi
+}
+
+#check for all required commands before anything
+checkCommand \
+  cat \
+  sed \
+  head \
+  tail \
+  sort \
+  gzip \
+  find \
+  usearch11 \
+  parallel
+
+while getopts ":hi:d:f:o:a:kt:v" opt
+do
+case ${opt} in
+  h )
+    help
     ;;
   i )
     input="$OPTARG"
@@ -119,20 +158,6 @@ esac
 done
 shift $((OPTIND -1)) #reset option pointer
 
-#check for usearch11
-if [ -z "$(which usearch11)" ]
-then
-  usageError "usearch11 was not found in \$PATH. Please make sure it's installed and findable in \$PATH as exactly: 'usearch11'."
-  exit 1
-fi
-
-#check for GNU parallel
-if [ -z "$(which parallel)" ]
-then
-  usageError "parallel was not found in \$PATH. Please make sure it's installed and findable in \$PATH as exactly: 'parallel'."
-  exit 1
-fi
-
 # check options
 if [ ! -s "$input" ]
 then
@@ -146,7 +171,7 @@ then
 fi
 
 mkdir -p "$output"
-if [ -n "$(ls -A ${output})" ]
+if [ -n "$(ls -A "${output}")" ]
 then
   echo "The directory ${output} is not empty, please clear. Exiting..."
   exit 1
@@ -252,7 +277,7 @@ main() {
         # Create concatenated fastq file of nonfiltered reads, with the sample labels
         usearch11 -fastx_relabel \
           "${phix_filtered}/${sample}.R1.fq" \
-          -prefix ${sample}${samplesep} \
+          -prefix "${sample}${samplesep}" \
           -fastqout "${phix_filtered_temp}/${sample}.R1.relabeled.fq" \
           -quiet
         cat "${phix_filtered_temp}/${sample}.R1.relabeled.fq" >>\
@@ -345,7 +370,7 @@ main() {
   #usearch11 -otutab does not scale linearly with the number of threads
   #much faster to split into smaller chunks and run in parallel using
   # GNU parallel and then merge tables afterwards
-  jobs=$((( $maxthreads / $chunksize )))
+  jobs=$((( maxthreads / chunksize )))
   if [ $jobs -gt 1 ]
   then
     echo "Splitting into $jobs jobs using max $chunksize threads each..."
@@ -354,7 +379,7 @@ main() {
 
     #split all unfiltered reads
     usearch11 -fastx_split "${tempdir}/all.singlereads.nophix.R1.fq" \
-      -splits $(($jobs - 1)) \
+      -splits $((jobs - 1)) \
       -outname "${splitfolder}/all.singlereads.nophix.R1_@.fa" \
       -quiet
 
@@ -363,7 +388,7 @@ main() {
       parallel --progress usearch11 -otutab {} \
         -zotus "${output}/ASVs.R1.fa" \
         -otutabout {.}_asvtab.tsv \
-        -threads $chunksize \
+        -threads "$chunksize" \
         -sample_delim "$samplesep" \
         -quiet
 
