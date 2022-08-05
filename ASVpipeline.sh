@@ -157,6 +157,7 @@ logfilepath="${output}/${logfilename}"
 #wrap everything in a function to allow writing stderr+stdout to log file
 main() {
   echo "#################################################"
+  echo "Host name: $(hostname)"
   echo "Script: $(realpath "$0")"
   echo "System time: $(date '+%Y-%m-%d %H:%M:%S') (${TZ})"
   echo "Script version: ${VERSION} (available at https://github.com/kasperskytte/asv_pipeline)"
@@ -213,9 +214,8 @@ main() {
   do
     echo -ne "Processing sample ($i/$nsamples): $sample\r"
     find "$fastq" \
-      -name "${sample}${samplesep}*R1*" 2>/dev/null \
-      -exec gzip -cd {} \; >\
-       "${rawdata}/${sample}.R1.fq"
+      -name "${sample}${samplesep}*R1*.f*q*" \
+      -exec gzip -cdfq {} \; 2>/dev/null > "${rawdata}/${sample}.R1.fq"
     
     #continue only if the sample was actually found and is not empty
     if [ -s "${rawdata}/${sample}.R1.fq" ]
