@@ -183,10 +183,10 @@ logfilepath="${output}/${logfilename}"
 main() {
   echo "#################################################"
   echo "Host name: $(hostname)"
-  echo "Script: $(realpath "$0")"
-  echo "System time: $(date '+%Y-%m-%d %H:%M:%S') (${TZ})"
-  echo "Script version: ${VERSION} (available at https://github.com/kasperskytte/asv_pipeline)"
   echo "Current user name: $(whoami)"
+  echo "System time: $(date '+%Y-%m-%d %H:%M:%S') (${TZ})"
+  echo "Script: $(realpath "$0")"
+  echo "Script version: ${VERSION} (available at https://github.com/kasperskytte/asv_pipeline)"
   echo "Current working directory: $(pwd)"
   echo "Input file with sample ID's: $(realpath "$input")"
   echo "Output folder: $(realpath -m "$output")"
@@ -387,7 +387,7 @@ main() {
     find "$splitfolder" -type f -name '*all.singlereads.nophix.R1_*.fa' |\
       parallel --progress usearch11 -otutab {} \
         -zotus "${output}/ASVs.R1.fa" \
-        -otutabout {.}_asvtab.tsv \
+        -otutabout "{.}_asvtab.tsv" \
         -threads "$chunksize" \
         -sample_delim "$samplesep" \
         -quiet
