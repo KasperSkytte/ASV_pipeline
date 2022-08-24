@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.9"
+VERSION="1.3.10"
 maxthreads=$(($(nproc)-2))
 fastq="/raw_data/sequences/Illumina/"
 taxdb=""
@@ -189,7 +189,7 @@ main() {
   echo "Script version: ${VERSION} (available at https://github.com/kasperskytte/asv_pipeline)"
   echo "Current working directory: $(pwd)"
   echo "Input file with sample ID's: $(realpath "$input")"
-  echo "Output folder: $(realpath -m "$output")"
+  echo "Output folder: $(realpath "$output")"
   echo "fastq folder with Illumina reads: $(realpath "$fastq")"
   if [ -s "$taxdb" ]
   then
@@ -214,7 +214,7 @@ main() {
   echo "Prefiltering database: ${prefilterdb}"
   echo "Keep all intermediate/temporary files: ${keepfiles}"
   echo "Max. number of threads: ${maxthreads}"
-  echo "Log file: $(realpath -m "$logfilepath")"
+  echo "Log file: $(realpath "$logfilepath")"
   echo "#################################################"
   echo
 
