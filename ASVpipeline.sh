@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.10"
+VERSION="1.3.11"
 maxthreads=$(($(nproc)-2))
 fastq="/raw_data/sequences/Illumina/"
 taxdb=""
@@ -240,7 +240,7 @@ main() {
     echo -ne "Processing sample ($i/$nsamples): $sample\r"
     find "$fastq" \
       -name "${sample}${samplesep}*R1*.f*q*" \
-      -exec gzip -cdfq {} \; 2>/dev/null > "${rawdata}/${sample}.R1.fq"
+      -exec gzip -cdfq {} \; 2>/dev/null > "${rawdata}/${sample}.R1.fq" || true
     
     #continue only if the sample was actually found and is not empty
     if [ -s "${rawdata}/${sample}.R1.fq" ]
