@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.12"
+VERSION="1.3.13"
 maxthreads=$(($(nproc)-2))
 fastq="/raw_data/sequences/Illumina/"
 taxdb=""
@@ -263,16 +263,24 @@ main() {
       echo "(found at $sample_filepath)"
       gzip -cdfq "$sample_filepath" >\
         "${rawdata}/${sample}.R1.fq"
-
-      #filter PhiX
-      usearch11 -filter_phix \
-        "${rawdata}/${sample}.R1.fq" \
-        -output "${phix_filtered}/${sample}.R1.fq" \
-        -threads "$maxthreads" \
-        -quiet
-      if [ "$keepfiles" == "no" ]
+      
+      #file might have size >0 when compressed, but empty after decompression
+      #check first so usearch doesn't error and exit
+      if [ -s "${rawdata}/${sample}.R1.fq" ]
       then
-        rm "${rawdata}/${sample}.R1.fq"
+        #filter PhiX
+        usearch11 -filter_phix \
+          "${rawdata}/${sample}.R1.fq" \
+          -output "${phix_filtered}/${sample}.R1.fq" \
+          -threads "$maxthreads" \
+          -quiet
+        if [ "$keepfiles" == "no" ]
+        then
+          rm "${rawdata}/${sample}.R1.fq"
+        fi
+      else
+        echo "(sample not found or empty file!)"
+        continue
       fi
       
       #QC
