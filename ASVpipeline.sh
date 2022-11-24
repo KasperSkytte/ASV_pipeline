@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.13"
+VERSION="1.3.14"
 maxthreads=$(($(nproc)-2))
 fastq="/raw_data/sequences/Illumina/"
 taxdb=""
@@ -249,7 +249,7 @@ main() {
     #use "|| true" to avoid exiting when the find command doesn't 
     #have permission to access some files/folders
     sample_filepath=$(
-      find "$fastq" \
+      find -L "$fastq" \
         -name "${sample}${samplesep}*R1*.f*q*" \
         2> /dev/null |\
       head -n 1 \
