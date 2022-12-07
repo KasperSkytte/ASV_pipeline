@@ -20,7 +20,7 @@ then
 fi
 
 #variables
-VERSION="1.3.14"
+VERSION="1.3.15"
 maxthreads=$(($(nproc)-2))
 fastq="/raw_data/sequences/Illumina/"
 taxdb=""
@@ -245,22 +245,34 @@ main() {
   do
     echo -ne "Processing sample ($i/$nsamples): $sample "
     #find the sample fastq file and decompress (if compressed)
+    #fdfind is Rust-based and multithreaded, the fastest there is
     #use head -n 1 to stop find from searching further after the first hit
-    #use "|| true" to avoid exiting when the find command doesn't 
-    #have permission to access some files/folders
-    sample_filepath=$(
-      find -L "$fastq" \
-        -name "${sample}${samplesep}*R1*.f*q*" \
-        2> /dev/null |\
-      head -n 1 \
-      || true
-    )
+    #newer versions of fdfind has --max-results instead which is best to use
+    if command -v fdfind 1> /dev/null
+    then
+      sample_filepath=$(
+        fdfind -s \
+          -g "*${sample}${samplesep}*R1*" \
+          -L \
+          -t file -t symlink \
+          -e gz -e fastq -e fq \
+          "$fastq" | head -n 1
+      )
+    else
+      sample_filepath=$(
+        find -L "$fastq" \
+          -name "${sample}${samplesep}*R1*.f*q*" \
+          2> /dev/null |\
+        head -n 1 \
+        || true
+      )
+    fi
 
     #continue only if the sample was actually found and is not empty
     if [ -s "$sample_filepath" ]    
     then
       #decompress (if not compressed will just output file as-is)
-      echo "(found at $sample_filepath)"
+      echo "(found at: $sample_filepath)"
       gzip -cdfq "$sample_filepath" >\
         "${rawdata}/${sample}.R1.fq"
       
